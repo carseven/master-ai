@@ -60,4 +60,3 @@ def histograma(img):
 
 
 lista_hist = histograma(ejemplo)
-print(lista_hist)
