@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
-ejemplo = plt.imread(THIS_FOLDER + "/img/fruta.jpg")
+ejemplo = plt.imread(THIS_FOLDER + "/img/vignetting.jpg")
 
 
 def histograma(img):
@@ -20,7 +20,7 @@ def histograma(img):
     """
 
     # Configuracion general de la grafica
-    plt.figure(1, figsize=(7, 7))
+    plt.figure(4, figsize=(7, 7))
     plt.suptitle('Histograma RGB', fontsize=30)
 
     # Lista donde almacenaremos histograma de cada canal
@@ -54,9 +54,62 @@ def histograma(img):
             plt.xlabel('Intensidad')
 
     plt.tight_layout()
-    plt.show()
 
     return lista
 
 
-lista_hist = histograma(ejemplo)
+def histograma_acumulado(img, bins):
+    """Realiza una ecualización de la imagén de entrada
+
+    Args:
+        img (numpy array): Array con la imagén de entrada.
+        bins (int): Número de intensidades de la imagén de entrada.
+
+    Returns:
+        Numpy array: Devuelve el array con la imagen de entrada tras aplicar la
+        ecualización.
+    """
+    flat = img.flatten()
+
+    plt.figure(1)
+    plt.hist(flat, bins=50)
+
+    # Calcular histograma
+    histogram = np.zeros(bins)
+    for pixel in img:
+        histogram[pixel] += 1
+
+    # Histograma acumulado
+    histogram = iter(histogram)
+    histogram_acum = [next(histogram)]
+    for i in histogram:
+        histogram_acum.append(histogram_acum[-1] + i)
+
+    histogram_acum = np.array(histogram_acum)
+
+    # Normalizamos a 0-255 el histograma acumulado
+    nj = (histogram_acum - histogram_acum.min()) * 255
+    N = histogram_acum.max() - histogram_acum.min()
+    histogram_acum = (nj / N).astype('uint8')
+
+    plt.figure(2)
+    plt.plot(histogram_acum)
+
+    # Obtener los valores del histograma acumulado para cada indice de la image
+    img_final = histogram_acum[flat]
+
+    # Forma original de la imagen
+    img_final = np.reshape(img_final, img.shape)
+
+    return img_final
+
+
+img_final = histograma_acumulado(ejemplo, 255)
+plt.figure(3)
+plt.imshow(img_final)
+
+
+histograma(ejemplo)
+plt.figure(5)
+plt.imshow(ejemplo)
+plt.show()
