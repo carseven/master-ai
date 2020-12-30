@@ -76,7 +76,7 @@ def histograma_acumulado(img, bins):
 
     # Calcular histograma
     histogram = np.zeros(bins)
-    for pixel in img:
+    for pixel in flat:
         histogram[pixel] += 1
 
     # Histograma acumulado
