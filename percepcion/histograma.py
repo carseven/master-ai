@@ -104,7 +104,7 @@ def histograma_acumulado(img, bins):
     return img_final
 
 
-img_final = histograma_acumulado(ejemplo, 255)
+img_final = histograma_acumulado(ejemplo, 256)
 plt.figure(3)
 plt.imshow(img_final)
 
