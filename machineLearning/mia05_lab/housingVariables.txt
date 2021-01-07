@@ -1,0 +1,79 @@
+MSSubClass: clase de construcción
+MSZoning: clasificación de la zona
+LotFrontage: pies lineales de calle de la parcela
+LotArea: tamaño de la parcela en pies cuadrados
+Street: tipo de acceso por carretera
+Alley: tipo de acceso al callejón
+LotShape: forma de la parcela
+LandContour: planitud de la parcela
+Utilities: servicios públicos disponibles
+LotConfig: Configuración de parcela
+LandSlope: pendiente de la parcela
+Neighborhood: ubicación física dentro de los límites de la ciudad de Ames
+Condition1: proximidad a la carretera principal o al ferrocarril
+Condition2: proximidad a la carretera principal o al ferrocarril (si hay un segundo)
+BldgType: tipo de vivienda
+HouseStyle: estilo de vivienda
+OverallQual: calidad general del material y del acabado
+OverallCond: condición general
+YearBuilt: fecha original de construcción
+YearRemodAdd: fecha de remodelación
+RoofStyle: tipo de cubierta
+RoofMatl: material del techo
+Exterior1st: revestimiento exterior de la casa
+Exterior2nd: revestimiento exterior de la casa (si hay más de un material)
+MasVnrType: tipo de revestimiento de mampostería
+MasVnrArea: área de revestimiento de mampostería en pies cuadrados
+ExterQual: calidad del material exterior
+ExterCond: estado del material en el exterior
+Foundation: tipo de cimentación
+BsmtQual: altura del sótano
+BsmtCond: estado general del sótano
+BsmtExposure: paredes del sótano a nivel de calle o de jardín
+BsmtFinType1: calidad del área acabada del sótano
+BsmtFinSF1: pies cuadrados de la superficie acabada tipo 1
+BsmtFinType2: calidad de la segunda superficie acabada (si existe)
+BsmtFinSF2: Pies cuadrados de la superficie acabada tipo 2
+BsmtUnfSF: pies cuadrados del área sin terminar del sótano
+TotalBsmtSF: pies cuadrados totales del sótano
+Heating: tipo de calefacción
+HeatingQC: calidad y estado de la calefacción
+CentralAir: aire acondicionado central
+Electrical: sistema eléctrico
+1erFlrSF: área en pies cuadrados de la primera planta (o planta baja)
+2ndFlrSF: área en pies cuadrados de la segunda planta
+LowQualFinSF: pies cuadrados acabados de baja calidad (todos los pisos)
+GrLivArea: superficie habitable por encima del nivel del suelo en pies cuadrados
+BsmtFullBath: cuartos de baño completos en el sótano
+BsmtHalfBath: medio baño del sótano
+FullBath: baños completos sobre el nivel del suelo
+HalfBath: medios baños sobre el nivel del suelo
+Bedroom: número de dormitorios por encima del nivel del sótano
+Kitchen: número de cocinas
+KitchenQual: calidad de la cocina
+TotRmsAbvGrd: total de habitaciones por encima del nivel del suelo (no incluye baños)
+Functional: valoración de la funcionalidad de la vivienda
+Fireplaces: número de chimeneas
+FireplaceQu: calidad de la chimenea
+GarageType: ubicación del garaje
+GarageYrBlt: año de construcción del garaje
+GarageFinish: acabado interior del garaje
+GarageCars: tamaño del garaje en capacidad de coches
+GarageArea: tamaño del garaje en pies cuadrados
+GarageQual: calidad de garaje
+GarageCond: condición de garaje
+PavedDrive: calzada asfaltada
+WoodDeckSF: area de plataforma de madera en pies cuadrados
+OpenPorchSF: área de porche abierto en pies cuadrados
+EnclosedPorch: área de porche cerrada en pies cuadrados
+3SsnPorch: área de porche de tres estaciones en pies cuadrados
+ScreenPorch: superficie acristalada del porche en pies cuadrados
+PoolArea: área de la piscina en pies cuadrados
+PoolQC: calidad de la piscina
+Fence: calidad de la valla
+MiscFeature: característica miscelánea no cubierta en otras categorías
+MiscVal: valor en dólares de la característica miscelánea
+MoSold: mes de venta
+YrSold: año de venta
+SaleType: tipo de venta
+SaleCondition: Condiciones de venta
