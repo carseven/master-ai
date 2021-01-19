@@ -137,6 +137,9 @@ print('Columnas menor 10% nulos, pero con algun nulo:')
 print(lower_10_percent)
 
 # %% Variables relacionadas con garaje remplazar NaN con una categoria # Nose
+data.GarageType = data.GarageType.fillna('None')
+# Repetir para las demás categorias
+print(data.GarageType.value_counts()['None'])
 
 # %% Analizar MasVnrArea y decidir como reemplazar los NaN
 
