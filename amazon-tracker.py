@@ -3,23 +3,18 @@ import requests
 import re
 import smtplib
 import time
-
-URL = 'https://www.amazon.es/Beyerdynamic-770-PRO-Auriculares-estudio/dp/B0016MNAAI/ref=sr_1_1?__mk_es_ES=ÅMÅŽÕÑ&crid=3RZLQUARRBLXP&dchild=1&keywords=beyerdynamic+dt+770+pro&qid=1611327024&sprefix=beyer%2Caps%2C224&sr=8-1'
-
-password = "biiexjwfqxdgferj"
-mail = "carles.serra33@gmail.com"
-buy_price = 100
-resquest_time_interval = 60 * 60 * 24
+import os.path
 
 
 def check_amazon_price(URL: str) -> float:
-    """Devuelve el precio de un producto de AMAZON.es
+    """Devuelve el precio de un producto de AMAZON.ES
 
     Args:
         URL (str): URL de AMAZON.ES
 
     Returns:
-        float: Precio del procudto
+        float or None: Precio del producto, pero si no se encuentra devuelve
+        None
     """
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.2 Safari/605.1.15"
@@ -43,7 +38,7 @@ def check_amazon_price(URL: str) -> float:
 
 
 def send_mail(mail, password, URL):
-    server = smtplib.SMTP('smtp.gmail.com')
+    server = smtplib.SMTP('smtp.gmail.com', 587)
     server.ehlo()
     server.starttls()
     server.ehlo()
@@ -51,8 +46,7 @@ def send_mail(mail, password, URL):
     server.login(mail, password)
 
     subject = 'El precio ha bajado!'
-    body = u'Link de amazon '
-
+    body = 'Link de amazon ' + URL
     message = f"Subject: {subject}\n\n{body}"
 
     server.sendmail(
@@ -62,9 +56,26 @@ def send_mail(mail, password, URL):
     )
 
 
+def read_password():
+    filename = 'password.txt'
+    if not os.path.isfile(filename):
+        pass
+    else:
+        with open(filename) as f:
+            password = f.readlines()
+            return password[0]
+
+
+# URL = 'https://www.amazon.es/Beyerdynamic-770-PRO-Auriculares-estudio/dp/B0016MNAAI/ref=sr_1_1?__mk_es_ES=ÅMÅŽÕÑ&crid=3RZLQUARRBLXP&dchild=1&keywords=beyerdynamic+dt+770+pro&qid=1611327024&sprefix=beyer%2Caps%2C224&sr=8-1'
+URL = 'https://www.amazon.es/dp/B07ZF3VBZT/ref=redir_mobile_desktop?_encoding=UTF8&aaxitk=wrJTcyiHr1nlW081QdvrFA&hsa_cr_id=6719101670002&pd_rd_plhdr=t&pd_rd_r=8088574c-1843-4764-8936-34f578ad21fb&pd_rd_w=zlJ12&pd_rd_wg=xIrv4&ref_=sbx_be_s_sparkle_mcd_asin_0_img'
+mail = "carles.serra33@gmail.com"
+buy_price = 40
+resquest_time_interval = 60 * 60 * 24
+
 while(True):
     price = check_amazon_price(URL)
     if price is not None and price <= buy_price:
-        send_mail(mail, password, URL)
+        send_mail(mail, read_password(), URL)
+        print('Correo enviado!')
 
     time.sleep(resquest_time_interval)
