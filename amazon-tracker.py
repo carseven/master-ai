@@ -59,11 +59,11 @@ def send_mail(mail, password, URL):
 def read_password():
     filename = 'password.txt'
     if not os.path.isfile(filename):
-        pass
+        raise Exception('Archivo', filename, 'no se ha encontrado!')
     else:
         with open(filename) as f:
-            password = f.readlines()
-            return password[0]
+            password = f.read()
+            return password
 
 
 # URL = 'https://www.amazon.es/Beyerdynamic-770-PRO-Auriculares-estudio/dp/B0016MNAAI/ref=sr_1_1?__mk_es_ES=ÅMÅŽÕÑ&crid=3RZLQUARRBLXP&dchild=1&keywords=beyerdynamic+dt+770+pro&qid=1611327024&sprefix=beyer%2Caps%2C224&sr=8-1'
@@ -71,11 +71,12 @@ URL = 'https://www.amazon.es/dp/B07ZF3VBZT/ref=redir_mobile_desktop?_encoding=UT
 mail = "carles.serra33@gmail.com"
 buy_price = 40
 resquest_time_interval = 60 * 60 * 24
+password = read_password()
 
 while(True):
     price = check_amazon_price(URL)
     if price is not None and price <= buy_price:
-        send_mail(mail, read_password(), URL)
+        send_mail(mail, password, URL)
         print('Correo enviado!')
 
     time.sleep(resquest_time_interval)

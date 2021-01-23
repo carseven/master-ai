@@ -10,7 +10,7 @@ pylab.rcParams['figure.figsize'] = (16.0, 7.0)
 # %% Leer los datos los datos del USA Housing Dataset:
 THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
 data = pd.read_csv(THIS_FOLDER + '/housing_train.csv')
-
+pd.set_option("display.max_rows", 30, "display.max_columns", None)
 # Utilizaremos este dataframe para convertir la variable categoricas en
 # numericas y poder realizar la matrix de correlacion y alimentar los modelos
 # con todas las variables.
