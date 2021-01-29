@@ -1,0 +1,79 @@
+# %%
+import pandas as pd
+import numpy as np
+import seaborn as sb
+import matplotlib.pyplot as plt
+import matplotlib.pylab as pylab
+import os
+
+# Que pandas muestre todas las columnas
+pd.set_option("display.max_rows", 30, "display.max_columns", None)
+%matplotlib inline
+pylab.rcParams['figure.figsize'] = (16.0, 7.0)
+
+# Cargar el dataset
+THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+
+data = pd.read_csv(THIS_FOLDER + '/datasets_train.csv')
+# %% Mostrar las 5 primeras filas del dataframe
+data.head(10)
+
+# %% Mostrar las columnas del dataframe
+data.columns
+
+# battery_power: Total energy a battery can store in one time measured in mAh
+# blue: Has bluetooth or not
+# clock_speed: speed at which microprocessor executes instructions
+# dual_sim: Has dual sim support or not
+# fc: front camera mega pixeles
+# four_g: has 4g or not
+# int_memory: Internal Memory in Gigabytes
+# m_dep: Mobile Depth in cm
+# mobile_wt: Weight of mobile phone
+# n_cores: Number of cores of processor
+# pc: Primary Camera mega pixels
+# px_height: Pixel Resolution Height
+# px_width: Pixel Resolution Width
+# ram: Random Access Memory in Megabytes
+# sc_h: Screen Height of mobile in cm
+# sc_w: Screen Width of mobile in cm
+# talk_time: longest time that a single battery charge will last when you are
+# three_g: Has 3G or not
+# touch_screen: Has touch screen or not
+# wifi: Has wifi or not
+# Columnas a predecir en la clasificacion.
+# price_range: This is the target variable with value of
+# 0(low cost), 1(medium cost), 2(high cost) and 3(very high cost).
+# %% Distinguir entre variables númericas y categoricas
+
+cat_columns = ['blue', 'dual_sim', 'four_g', 'three_g', 'touch_screen',
+               'wifi', 'price_range']
+
+num_columns = list(set(data.columns) - set(cat_columns))
+
+print('Variables númericas:')
+print(num_columns)
+print('\n')
+print('Variables categoricas:')
+print(cat_columns)
+# %% Datos estadísticos de las variables númericas
+
+print('Datos estadíticos de las variables númericas:')
+for column in num_columns:
+    cuartiles = data[column].quantile([.25, .50, .75])
+
+    print('Variable ' + column + ':')
+    print('MAX:', data[column].max())
+    print('MIN:', data[column].min())
+    print('MEDIA:', data[column].mean())
+    print('MEDIANA:', data[column].median())
+    print('25%:', cuartiles.iloc[0])
+    print('50%:', cuartiles.iloc[1])
+    print('75%:', cuartiles.iloc[2])
+    print('\n')
+# %% Frecuencia de las variables categoricas
+for column in cat_columns:
+    print(f'Variable {column}:')
+    print(f'Listado categorias: \n{data[column].unique()}')
+    print(f'Frecuencia categorias: \n{data[column].value_counts()}')
+    print('\n')
