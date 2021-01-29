@@ -18,8 +18,8 @@ data = pd.read_csv(THIS_FOLDER + '/datasets_train.csv')
 # %% Mostrar las 5 primeras filas del dataframe
 data.head(10)
 
-# %% Mostrar las columnas del dataframe
-data.columns
+# %% Informa
+data.info()
 
 # battery_power: Total energy a battery can store in one time measured in mAh
 # blue: Has bluetooth or not
@@ -57,7 +57,6 @@ print('\n')
 print('Variables categoricas:')
 print(cat_columns)
 # %% Datos estadísticos de las variables númericas
-
 print('Datos estadíticos de las variables númericas:')
 for column in num_columns:
     cuartiles = data[column].quantile([.25, .50, .75])
@@ -77,3 +76,63 @@ for column in cat_columns:
     print(f'Listado categorias: \n{data[column].unique()}')
     print(f'Frecuencia categorias: \n{data[column].value_counts()}')
     print('\n')
+
+# %% Distribución de las variables númericas
+fig, axs = plt.subplots(len(num_columns), 1, figsize=(15, 50))
+
+count = 0
+for column in num_columns:
+    fp = sb.distplot(data[column], ax=axs[count])
+    fp.set_title(f'Distribución de {column}')
+    count += 1
+
+plt.tight_layout()
+# %% Distribución de las variables categoricas
+fig, axs = plt.subplots(len(cat_columns), 1, figsize=(15, 50))
+
+count = 0
+for column in cat_columns:
+    fp = sb.countplot(data[column], ax=axs[count])
+    fp.set_title(f'Distribución de {column}')
+    fp.set_xticklabels(data[column].unique())
+    count += 1
+
+# %% Matriz de correlación
+
+# Calcular correlacion de las variables numericas.
+df_matrix_corr = data[num_columns].corr(method='pearson').abs()
+
+# Triangulo inferior de la matrix de correlacion
+mask = np.triu(np.ones(df_matrix_corr.shape)).astype(np.bool)
+
+# Grafico de la matriz de correlacion
+f, ax = plt.subplots(figsize=(15, 20))
+ax.set_yticklabels(df_matrix_corr.columns[1:], rotation=0)
+ax.set_xticklabels(df_matrix_corr.columns[:-1], rotation=45)
+heatmap = sb.heatmap(
+    df_matrix_corr,
+    mask=mask,
+    square=True,
+    linewidths=1,
+    cmap=sb.light_palette('seagreen', as_cmap=True),
+    cbar_kws={'shrink': .4, 'ticks': [-1, -.5, 0, 0.5, 1]},
+    vmin=0,
+    vmax=1,
+    annot=True,
+    annot_kws={"size": 10},
+    fmt=".2f"
+)
+# %% Encontrar las correlacion con que superen el 0.75
+umbral = 0.75
+corr_stack = df_matrix_corr.where(mask).stack().reset_index()
+corr_stack.columns = ['Row', 'Column', 'Correlation Value']
+corr_75 = corr_stack[(corr_stack['Correlation Value'] > umbral) &
+                     (corr_stack['Correlation Value'] < 1)]
+corr_75 = corr_75.sort_values(
+    by='Correlation Value',
+    kind="quicksort",
+    ascending=False).drop_duplicates(keep='first')
+print(corr_75)
+# %% Porcentage de nulos por columna
+percent_null = (data.isnull().sum()[data.isnull().sum() > 0] / len(data)) * 100
+print(percent_null)
