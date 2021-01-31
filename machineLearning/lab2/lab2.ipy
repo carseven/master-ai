@@ -1,14 +1,17 @@
 # %%
+from numpy.lib.function_base import average
 import pandas as pd
 import numpy as np
 import seaborn as sb
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pylab
 import os
+from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict
+from sklearn import svm
+import sklearn.metrics as metrics
 
 # Que pandas muestre todas las columnas
 pd.set_option("display.max_rows", 30, "display.max_columns", None)
-%matplotlib inline
 pylab.rcParams['figure.figsize'] = (16.0, 7.0)
 
 # Cargar el dataset
@@ -122,6 +125,10 @@ heatmap = sb.heatmap(
     annot_kws={"size": 10},
     fmt=".2f"
 )
+
+# Se aprecia claramente una relación en las variables como pc, fc. sc_w y sc_h,
+# px_width y px_px_height
+# Mostrar distribuciones
 # %% Encontrar las correlacion con que superen el 0.75
 umbral = 0.75
 corr_stack = df_matrix_corr.where(mask).stack().reset_index()
@@ -134,5 +141,134 @@ corr_75 = corr_75.sort_values(
     ascending=False).drop_duplicates(keep='first')
 print(corr_75)
 # %% Porcentage de nulos por columna
-percent_null = (data.isnull().sum()[data.isnull().sum() > 0] / len(data)) * 100
+percent_null = (data.isnull().sum() / len(data)) * 100
 print(percent_null)
+
+# %% Preparar dataset para la clasificación
+data['price_range'].unique()  # Tenemos cuatro clases
+
+x = data.drop(columns='price_range')
+y = data['price_range']
+
+# Hold out, probar cross validation¿?
+x_train, x_test, y_train, y_test = train_test_split(x,
+                                                    y,
+                                                    test_size=0.2,
+                                                    random_state=42)
+
+print("Datos de entrenamiento:")
+print(f"Samples: {x_train.shape}")
+print(f"Labels: {y_train.shape}\n")
+print("Datos de test:")
+print(f"Samples: {x_test.shape}")
+print(f"Labels: {y_test.shape}\n")
+
+# %% SVM
+param_grid = {'C': 10. ** np.arange(-3, 3), 'gamma': 10. ** np.arange(-5, 0)}
+
+svm_model = svm.SVC(kernel='linear', C=1, random_state=42)
+svm_model = svm_model.fit(x_train, y_train)
+predicted = svm_model.predict(x_test)
+
+# %% Calcular matriz de confusión: TP, TN, FP, FN
+
+
+def counts_from_confusion(confusion_matrix):
+    count = []
+
+    # Iterate through classes and store the counts
+    for i in range(confusion_matrix.shape[0]):
+        tp = confusion_matrix[i, i]
+
+        fn_mask = np.zeros(confusion_matrix.shape)
+        fn_mask[i, :] = 1
+        fn_mask[i, i] = 0
+        fn = np.sum(np.multiply(confusion_matrix, fn_mask))
+
+        fp_mask = np.zeros(confusion_matrix.shape)
+        fp_mask[:, i] = 1
+        fp_mask[i, i] = 0
+        fp = np.sum(np.multiply(confusion_matrix, fp_mask))
+
+        tn_mask = 1 - (fn_mask + fp_mask)
+        tn_mask[i, i] = 0
+        tn = np.sum(np.multiply(confusion_matrix, tn_mask))
+
+        count.append({'Clase': i,
+                      'TP': tp,
+                      'FN': fn,
+                      'FP': fp,
+                      'TN': tn})
+
+    tp = (count[0]['TP'] + count[1]['TP'] + count[2]
+          ['TP'] + count[3]['TP'])
+    tn = (count[0]['TN'] + count[1]['TN'] + count[2]
+          ['TN'] + count[3]['TN'])
+    fp = (count[0]['FP'] + count[1]['FP'] + count[2]
+          ['FP'] + count[3]['FP'])
+    fn = (count[0]['FN'] + count[1]['FN'] + count[2]
+          ['FN'] + count[3]['FN'])
+
+    return tp, tn, fp, fn, count
+
+
+# %% Metricas de evalucion.
+confusion_matrix = metrics.confusion_matrix(y_test, predicted)
+tp, tn, fp, fn, dict_confusion = counts_from_confusion(confusion_matrix)
+
+accuracy = metrics.accuracy_score(y_test, predicted)
+recall = metrics.recall_score(y_test, predicted, average='micro')
+f1 = metrics.f1_score(y_test, predicted, average='micro')
+specificity = tn/(tn + fp)
+sensibility = tp/(tp + fn)
+
+
+print("Métricas evaluación:")
+print(f"Accuracy: {accuracy:.2f}")
+print(f"Recall: {recall:.2f}")
+print(f"F1: {f1:.2f}")
+print(f"Specificity: {specificity:.2f}")
+print(f"Sensibility: {sensibility:.2f}")
+
+# Visualizar matriz de confusión
+metrics.plot_confusion_matrix(svm_model, x_test, y_test)
+plt.show()
+print(dict_confusion)
+# %% SVM Cross-validation
+# gridsearch
+svm_model = svm.SVC(kernel='linear', C=1, random_state=42)
+scores = cross_val_score(svm_model, x_train, y_train)
+predicted = cross_val_predict(svm_model, x_test, y_test)
+# %%
+confusion_matrix = metrics.confusion_matrix(y_test, predicted)
+tp, tn, fp, fn, dict_confusion = counts_from_confusion(confusion_matrix)
+
+accuracy = metrics.accuracy_score(y_test, predicted)
+recall = metrics.recall_score(y_test, predicted, average='micro')
+f1 = metrics.f1_score(y_test, predicted, average='micro')
+specificity = tn/(tn + fp)
+sensibility = tp/(tp + fn)
+
+
+print("Métricas evaluación:")
+print(f"Accuracy: {accuracy:.2f}")
+print(f"Recall: {recall:.2f}")
+print(f"F1: {f1:.2f}")
+print(f"Specificity: {specificity:.2f}")
+print(f"Sensibility: {sensibility:.2f}")
+
+fig, ax = plt.subplots()
+ax = sb.heatmap(
+    confusion_matrix,
+    fmt='.4g',
+    annot=True,
+    annot_kws={'size': 16},
+    cmap='Blues_r',
+    cbar=False)
+plt.title('Matriz de confusión')
+plt.ylabel('Clase actual')
+plt.xlabel('Clase de predicción')
+plt.ylim(4, 0)
+plt.show()
+print(dict_confusion)
+# %% Neural networks
