@@ -272,3 +272,6 @@ plt.ylim(4, 0)
 plt.show()
 print(dict_confusion)
 # %% Neural networks
+
+# Categoricas a one-hot enconding
+# Numericas normalizarlas y desviación estandard
