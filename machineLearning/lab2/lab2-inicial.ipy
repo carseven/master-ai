@@ -6,7 +6,8 @@ import seaborn as sb
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pylab
 import os
-from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import KFold, cross_val_predict
 from sklearn import svm
 import sklearn.metrics as metrics
 
@@ -164,7 +165,6 @@ print(f"Samples: {x_test.shape}")
 print(f"Labels: {y_test.shape}\n")
 
 # %% SVM
-param_grid = {'C': 10. ** np.arange(-3, 3), 'gamma': 10. ** np.arange(-5, 0)}
 
 svm_model = svm.SVC(kernel='linear', C=1, random_state=42)
 svm_model = svm_model.fit(x_train, y_train)
@@ -272,6 +272,3 @@ plt.ylim(4, 0)
 plt.show()
 print(dict_confusion)
 # %% Neural networks
-
-# Categoricas a one-hot enconding
-# Numericas normalizarlas y desviación estandard
