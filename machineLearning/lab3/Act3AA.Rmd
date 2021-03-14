@@ -1,0 +1,405 @@
+---
+title: "Detección de Anomalías - UNIR"
+author: "Fernando Palomino, Mónica Hazeu, Xavier Castilla, Carles Serra"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+## 0) Preliminares
+#### 0.1) Cargamos las librerías
+```{r message = FALSE}
+library(cluster)
+library(CatEncoders)
+library(car)
+library(tidyverse)
+library(mice)
+library(corrplot)
+library(RColorBrewer)
+library(IsolationForest)
+library(h2o)        
+library(solitude)   
+library(Metrics)
+library(globals)
+library(parallelly)
+```
+
+#### 0.2) Leer los datos 
+```{r}
+creditCard <- read.csv("creditcardcsvpresent.csv")
+dim(creditCard)
+head(creditCard)
+
+
+```
+Tenemos 12 variables de 3075 instancias cada una.
+
+Veamos los valores nulos:
+```{r}
+sum(is.na(creditCard))
+
+```
+Vemos que hay justamente los mismos valores faltantes que instancias de una variable. Si analizamos los datos, vemos que Transaction.date es una columna contodos los valores nulos:
+```{r}
+sum(is.na(creditCard$Transaction.date))
+```
+Por ello, la eliminamos de nuestro dataset.
+```{r}
+creditCard=creditCard%>%select(-Transaction.date)
+```
+Y veamos que no hay más datos faltantes:
+```{r}
+sum(is.na(creditCard))
+
+```
+
+También vamos a eliminar la variable de Merchant_id porque no aporta nada de valor a nuestro dataset.
+```{r}
+creditCard=creditCard%>%select(-Merchant_id)
+```
+Hecho esto, vamos a separar las variables categóricas de las numéricas:
+```{r}
+str(creditCard)
+```
+```{r}
+creditCard_numerico=creditCard%>%select(Average.Amount.transaction.day,
+                                        Transaction_amount,
+                                        Total.Number.of.declines.day,
+                                        Daily_chargeback_avg_amt,
+                                        X6_month_avg_chbk_amt,
+                                        X6.month_chbk_freq )
+
+creditCard_categorico= creditCard%>%select(Is.declined,
+                                           isForeignTransaction,
+                                           isHighRiskCountry,
+                                           isFradulent)
+```
+
+
+## 1) Análisis descriptivo de los datos:
+
+#### 1.1) De las variables numéricas hallar datos estadísticos: máximo, mínimo, media, mediana y cuartiles
+Usemos la función summary para obtener estos datos estadísticos.
+```{r}
+summary(creditCard_numerico)
+
+```
+Vemos que salvo las variables Average.Amount.transaction.day y Transaction_amount, parece que el resto de variables toman valores muy extremos, ya que los cuartiles son 0. Para visualizar esto, representemos estos valores numéricos con histogramas.
+```{r}
+get_histogram <- function(index, data) {
+    var_name <- names(data)[index]
+    hist(data[,index], main = paste0("Buildings per '", var_name, "'"), xlab = var_name, col = "cornflowerblue")
+    box()
+}
+
+options(repr.plot.width = 10, repr.plot.height = 15, repr.plot.res = 100)
+par(mfrow = c(2, 2))
+dummy <- lapply(1:6, get_histogram, creditCard_numerico)
+
+
+```
+
+Y efectivamente podemos ver que la gran mayoria de los datos se agrupan en los primeros intervalos. Podemos empezar a pensar que algunos de estos datos más elevados podrán ser considerados outliers.
+
+
+#### 1.2)De las variables categóricas, listar las diferentes categorías y hallar la frecuencia de cada una de ellas. 
+Pasemos estas variables a factores y veamos las frecuencias.
+```{r}
+creditCard_categorico=creditCard_categorico%>%mutate_if(is.character,as.factor)
+summary(creditCard_categorico)
+
+```
+Representemos estos datos con diagramas de barras:
+```{r}
+get_bar_plot <- function(index, data) {
+    counts <- table(data[,index])
+    var_name <- names(data)[index]
+    barplot(counts, main = paste0("Buildings per '", var_name, "'"), xlab = var_name, col = "cornflowerblue")
+    box()
+}
+
+options(repr.plot.width = 2, repr.plot.height = 10, repr.plot.res = 100)
+par(mfrow = c(2,2))
+dummy <- lapply(1:4, get_bar_plot, creditCard_categorico)
+
+```
+Vemos que suele haber más datos "N" que "Y", aunque fuera de contexto esto no aporta mucha información. Con excepción de isFraudulent, que el interés reside en esos valores "Y".
+De hecho, veamos cuantos datos fraudulentos tenemos:
+```{r}
+table(creditCard_categorico$isFradulent)
+```
+Por tanto suponemos que tenemos 448 anomalías.
+
+
+
+#### 1.3) Crear la matriz de correlaciones con las columnas numéricas
+Veamos la correlación entre las variables numéricas:
+```{r}
+cor(creditCard_numerico)
+```
+Veámoslo ahora gráficamente:
+```{r}
+
+matriz=cor(creditCard_numerico)
+corrplot(matriz, method="circle", type="lower", order="hclust",
+         col=brewer.pal(n=8, name="RdBu"))
+
+```
+
+
+#### 1.4) Encontrar las correlaciones más altas, que superen el 0.75
+
+```{r}
+sum(cor(creditCard_numerico)>0.75 & cor(creditCard_numerico)!=1)/2
+
+```
+Hay 3 variables que están muy correladas, estas son:
+Daily_chargeback_avg_amt - X6.month_chbk_freq (88% correlación)
+X6_month_avg_chbk_amt - X6.month_chbk_freq  (85% correlación)
+X6_month_avg_chbk_amt - Daily_chargeback_avg_amt (95% correlación)
+
+Estas correlaciones son superiores al 75%, así que se puede discutir en eliminarlas.
+El resto no superan el 75% así que nos las eliminaremos.
+
+#### 1.5) Revisar las correlaciones más altas y decidir si eliminar o no la columna
+Se van a eliminar la variable X6_month_avg_chbk_amt y X6.month_chbk_freq  ya que se consideran más relevantes los datos diarios para la predicción de fraudes que una media con menos picos a largo plazo.
+```{r}
+creditCard_numerico=creditCard_numerico%>%select(-X6_month_avg_chbk_amt,
+                                                 -X6.month_chbk_freq)
+
+```
+
+
+Y por último unamos en un dataset este análisis que hemos hecho.
+
+Será interesante que cambiemos estos valores "Y" y "N" por valores 1 y 0, para poder escalarlos con posterioridad y usarlos en el clústering. No olvidemos pasar los valores categóricos a factores. Por tanto:
+```{r}
+creditCard_categorico_10 <- creditCard_categorico %>%
+      mutate(Is.declined = ifelse(Is.declined == "Y",1,0),
+             isForeignTransaction = ifelse(isForeignTransaction == "Y",1,0),
+             isHighRiskCountry= ifelse(isHighRiskCountry == "Y",1,0),
+             isFradulent= ifelse(isFradulent == "Y",1,0))
+
+creditCard_categorico_10$Is.declined=as.factor(creditCard_categorico_10$Is.declined)
+creditCard_categorico_10$isForeignTransaction=
+  as.factor(creditCard_categorico_10$isForeignTransaction)
+creditCard_categorico_10$isHighRiskCountry=
+  as.factor(creditCard_categorico_10$isHighRiskCountry)
+creditCard_categorico_10$isFradulent=
+  as.factor(creditCard_categorico_10$isFradulent)
+
+```
+Escalemos las variables numéricas y unámoslas con las variables categóricas.
+```{r}
+creditCard_numerico_escalado=as.data.frame(lapply(creditCard_numerico,scale))
+creditCard_final=cbind(creditCard_numerico_escalado, creditCard_categorico_10)
+```
+
+
+Vamos a separar tambien este dataset del is.Fraudulent, que será el que queramos predecir. (Si es fraudulento, en principio, es anomalía). Por tanto:
+```{r}
+creditCard_final_Y=creditCard_final%>%select(isFradulent)
+creditCard_final_no_Y=creditCard_final%>%select(-isFradulent)
+```
+
+
+## 2) Cluster o agrupamiento
+
+#### 2.1) Crear al menos dos modelos con grupos diferentes para poder compararlos
+
+Vamos a crear dos modelos, uno con 5 clusters y otro con 10.
+```{r}
+set.seed(1)
+num.clusters1=5
+
+modelo.kmeans1 <- kmeans(creditCard_final, num.clusters1)
+asignaciones.clustering.kmeans1 <- modelo.kmeans1$cluster
+centroides1 <- modelo.kmeans1$centers
+
+num.clusters2=10
+modelo.kmeans2 <- kmeans(creditCard_final, num.clusters2)
+asignaciones.clustering.kmeans2 <- modelo.kmeans2$cluster
+centroides2 <- modelo.kmeans2$centers
+
+```
+
+
+
+
+#### 2.2) Imprima los centroides de los grupos de los dos modelos creados y comente los resultados. 
+```{r}
+centroides1
+centroides2
+
+```
+Al aumentar el número de clústers, lo que sucede es que los centroides cambian de posición, para así ajustarse más a los datos de entrada.
+
+Si los representamos gráficamente:
+```{r}
+clusplot(creditCard_final,
+         modelo.kmeans1$cluster, 
+         color=TRUE,
+         col.clus=c(1:5)[unique(modelo.kmeans1$cluster)],
+         shade=TRUE,
+         labels=4, 
+         lines=0, 
+         main = "Cluster Plot Bivariable con 5 clústers")
+
+clusplot(creditCard_final,
+         modelo.kmeans2$cluster, 
+         color=TRUE,
+         col.clus=c(1:5)[unique(modelo.kmeans2$cluster)],
+         shade=TRUE,
+         labels=4, 
+         lines=0, 
+         main = "Cluster Plot Bivariable con 10 clústers")
+
+
+```
+
+Lo interesante sería ver qué valores distan más del clúster al que pertenecen, para poder ser así clasificados como outliers de ese clúster.
+
+
+
+## 3) Detección de anomalías
+
+#### 3.1) Utilice el algoritmo IsolationForest u otro con el que este familiarizado
+
+Preparamos el entorno para usar IsolationForest. Hagámoslo con el paquete h2o.
+```{r}
+# Se inicializa el cluster H2O
+h2o.init(ip = "localhost",
+         # Todos los cores disponibles.
+         nthreads = -1,
+         # Máxima memoria disponible para el cluster.
+         max_mem_size = "4g")
+
+h2o.removeAll()
+h2o.no_progress()
+
+```
+Creamos nuestro modelo, eliminando la variable de is.Fraudulent porque es la que queremos predecir.
+```{r}
+set.seed(1)
+datos_h2o <- as.h2o(x = creditCard_final)
+isoforest <- h2o.isolationForest(
+                model_id = "isoforest",
+                training_frame = datos_h2o,
+                x= colnames(datos_h2o)[-8],
+                max_depth      = 350, # Profundidad máxima de los árboles
+                ntrees         = 500, # Número de los árboles
+                sample_rate    = 0.9 # Ratio de observaciones empleadas en cada árbol
+             )
+
+```
+
+
+
+#### 3.2) Obtenemos los score
+Vamos a predecir los datos.
+```{r}
+set.seed(1)
+predicciones_h2o <- h2o.predict(
+                      object  = isoforest,
+                      newdata = datos_h2o
+                    )
+predicciones <- as.data.frame(predicciones_h2o)
+```
+
+```{r}
+datos=creditCard_final
+datos <- datos %>%
+         bind_cols(predicciones)
+
+```
+
+
+Como tenemos 448 datos, asignaremos a los 448 que más disten, la categoría de fraude (1).
+```{r}
+
+resultados <- datos %>%
+              select(isFradulent, mean_length) %>%
+              arrange(mean_length) %>%
+              mutate(clasificacion = if_else(row_number() <= 448, "1", "0"))
+```
+
+#### 3.3)Halle el Máximo y el mínimo score
+```{r}
+summary(datos$mean_length)
+
+```
+
+#### 3.4) Calcular el score para los datos de test
+Si ejecutamos la matriz de confusión y el accuracy, obtenemos:
+```{r}
+mat_confusion <- MLmetrics::ConfusionMatrix(
+                    y_pred = resultados$clasificacion,
+                    y_true = resultados$isFradulent
+                 )
+mat_confusion
+
+y_pred = resultados$clasificacion
+y_true = resultados$isFradulent
+
+accuracy(y_pred,y_true)
+
+```
+En este caso, es más importante que detecte más como fraudulentos que menos.
+Es decir, si un caso se detecta como fraudulento y al final no lo es, no habría problema en gestionarlo. Pero los datos fraudulentos que no se detecten podrían tener graves problemas.
+Por tanto, nos interesa detectar los Falsos Negativos, es decir: aquellos valores que hemos detectado que NO SON FRAUDULENTOS pero que en verdad SÍ LO SON. Esos, han sido 98 valores. Por ello, es interesante que usemos la sensibilidad:
+```{r}
+sensibilidad= (368+2547)/(360+2547+80)
+sensibilidad
+```
+Hemos detectado correctamente, más de 360 valores fraudes de los 448 que teníamos usando IsolationForest. Es decir, hemos detectado en torno al 80% de los fraudes. Cabe destacar, que puede haber fraudes que no se comporten como datos anómalos, es decir, que compartan las mismas características que un dato no fraudulento pero aún así, sí que lo sea. De hecho ese debe ser el objetivo de alguien que haga fraudes de manera profesional.
+
+Se puede hacer lo mismo con el paquete solitude.
+```{r}
+set.seed(1)
+isoforest2 <- isolationForest$new(
+                sample_size = as.integer(nrow(datos)/2),
+                num_trees   = 500, 
+                replace     = TRUE,
+                seed        = 123
+             )
+isoforest2$fit(dataset = datos %>% select(-isFradulent))
+
+predicciones <- isoforest2$predict(
+                  data = datos %>% select(-isFradulent)
+                )
+
+datos=creditCard_final
+datos <- datos %>%
+         bind_cols(predicciones)
+
+
+resultados <- datos %>%
+              select(isFradulent, average_depth) %>%
+              arrange(average_depth) %>%
+              mutate(clasificacion = if_else(row_number() <= 448, "1", "0"))
+
+mat_confusion <- MLmetrics::ConfusionMatrix(
+                    y_pred = resultados$clasificacion,
+                    y_true = resultados$isFradulent
+                 )
+mat_confusion
+y_pred = resultados$clasificacion
+y_true = resultados$isFradulent
+accuracy(y_pred,y_true)
+```
+Obteniendo peores resultados, pero, aún así, acertando más del 70% de los datos.
+
+
+
+## 4) Comentarios sobre los resultados obtenidos en cluster y en anomalías
+Hemos podido comprobar que si cambiamos el número de clústers, estos se reordenan par así ajustarse más a los datos que introducimos. Añadir muchos clústers tampoco es una buena idea porque podemos entrar en el área del sobreajuste.
+Respecto a la detección de anomalías, hemos detectado gran cantidad de los datos fraudulentos, por lo que podemos concluir que el modelo de IsolationForest ha sido eficaz en este dataset.
+
+
+
+## 5) Referencias
+Detección de anomalías: Isolation Forest by Joaquín Amat Rodrigo, available under a Attribution 4.0 International (CC BY 4.0) at https://www.cienciadedatos.net/documentos/66_deteccion_anomalias_isolationforest.html
+
+
