@@ -12,20 +12,8 @@ from simpleai.search.viewers import BaseViewer,ConsoleViewer, WebViewer
 
 
 MAP = """
-##############################
-#         #              #   #
-# ####    ########       #   #
-#  T #    #              #   #
-#    ###     ####   ######   #
-#         ####      #        #
-#            #  #   #   #### #
-#     ######    #       # P  #
-#        #      #            #
-##############################
-"""
-MAP = """
 ########
-#    T #
+#     T#
 # #### # 
 #   P# #
 # ##   #
@@ -39,18 +27,15 @@ COSTS = {
     "down": 1.0,
     "left": 1.0,
     "right": 1.0,
-    # "up left": 1.4,
-    # "up right": 1.4,
-    # "down left": 1.4,
-    # "down right": 1.4,
 }
 
 
 class GameWalkPuzzle(SearchProblem):
 
-    def __init__(self, board):
+    def __init__(self, board, is_manhattan):
         self.board = board
         self.goal = (0, 0)
+        self.is_manhattan = is_manhattan;
         for y in range(len(self.board)):
             for x in range(len(self.board[y])):
                 if self.board[y][x].lower() == "t":
@@ -92,7 +77,11 @@ class GameWalkPuzzle(SearchProblem):
     def heuristic(self, state):
         x, y = state
         gx, gy = self.goal
-        return math.sqrt((x - gx) ** 2 + (y - gy) ** 2)
+        
+        if self.is_manhattan:
+            return abs(x - gx) + abs(y - gy)
+        else:
+            return math.sqrt((x - gx) ** 2 + (y - gy) ** 2)
 
 
 def searchInfo (problem,result,use_viewer):
@@ -136,49 +125,54 @@ def resultado_experimento(problem,MAP,result,used_viewer):
     info=searchInfo(problem,result,used_viewer)
     print(info)
 
-def main():
-    problem = GameWalkPuzzle(MAP)
-    used_viewer=BaseViewer() 
-    # Probad también ConsoleViewer para depurar
-    # Probad también WebViewer para ver los árboles
-    
-    # Mostramos tres experimentos
-    result = breadth_first(problem, graph_search=True,viewer=used_viewer)
-    resultado_experimento(problem,MAP,result,used_viewer)
-    
-    problem = GameWalkPuzzle(MAP)
-    used_viewer=BaseViewer() 
-    result = depth_first(problem, graph_search=True,viewer=used_viewer)
-    resultado_experimento(problem,MAP,result,used_viewer)
-
-    problem = GameWalkPuzzle(MAP)
-    used_viewer=BaseViewer() 
-    result = astar(problem, graph_search=True,viewer=used_viewer)
-    resultado_experimento(problem,MAP,result,used_viewer)
-
-
 # def main():
-#     problem = GameWalkPuzzle(MAP)
-#     used_viewer=BaseViewer() # Try also ConsoleViewer or WebViewer
+#     problem = GameWalkPuzzle(MAP, False)
+#     used_viewer=BaseViewer() 
+#     # Probad también ConsoleViewer para depurar
+#     # Probad también WebViewer para ver los árboles
     
-#     # Try breadth_first and depth_first too!
-#     result = astar(problem, graph_search=True,viewer=used_viewer)
-#     path = [x[1] for x in result.path()]
+#     # Mostramos tres experimentos
+#     result = breadth_first(problem, graph_search=True,viewer=used_viewer)
+#     resultado_experimento(problem,MAP,result,used_viewer)
+    
+#     problem = GameWalkPuzzle(MAP, False)
+#     used_viewer=BaseViewer() 
+#     result = depth_first(problem, graph_search=True,viewer=used_viewer)
+#     resultado_experimento(problem, MAP, result, used_viewer)
 
-#     for y in range(len(MAP)):
-#         for x in range(len(MAP[y])):
-#             if (x, y) == problem.initial:
-#                 print("o", end='')
-#             elif (x, y) == problem.goal:
-#                 print("x", end='')
-#             elif (x, y) in path:
-#                 print("·", end='')
-#             else:
-#                 print(MAP[y][x], end='')
-#         print()
+#     problem = GameWalkPuzzle(MAP, False)
+#     used_viewer=BaseViewer() 
+#     result = astar(problem, graph_search=True, viewer=used_viewer)
+#     resultado_experimento(problem,MAP,result,used_viewer)
+    
+#     problem = GameWalkPuzzle(MAP, True)
+#     used_viewer=BaseViewer()
+#     result = astar(problem, graph_search=True, viewer=used_viewer)
+#     resultado_experimento(problem,MAP,result,used_viewer)
 
-#     info=searchInfo(problem,result,used_viewer)
-#     print(info)
+
+def main():
+    problem = GameWalkPuzzle(MAP, True)
+    used_viewer=ConsoleViewer() # Try also ConsoleViewer or WebViewer
+    
+    # Try breadth_first and depth_first too!
+    result = breadth_first(problem, graph_search=True,viewer=used_viewer)
+    path = [x[1] for x in result.path()]
+
+    for y in range(len(MAP)):
+        for x in range(len(MAP[y])):
+            if (x, y) == problem.initial:
+                print("o", end='')
+            elif (x, y) == problem.goal:
+                print("x", end='')
+            elif (x, y) in path:
+                print("·", end='')
+            else:
+                print(MAP[y][x], end='')
+        print()
+
+    info=searchInfo(problem,result,used_viewer)
+    print(info)
 
 if __name__ == "__main__":
     main()
