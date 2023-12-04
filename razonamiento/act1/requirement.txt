@@ -1,0 +1,8 @@
+certifi==2023.7.22
+cffi @ file:///private/tmp/cffi-20231014-5567-1hyue8f/cffi-1.16.0
+cryptography @ file:///private/tmp/python-cryptography-20231024-6375-1k9sys9/cryptography-41.0.5
+Pillow @ file:///private/tmp/pillow-20231015-7966-j7gct6/Pillow-10.1.0
+pycparser @ file:///private/tmp/pycparser-20231013-5787-1anpge2/pycparser-2.21
+PyYAML @ file:///private/tmp/pyyaml-20230717-6270-1iiwi1j/PyYAML-6.0.1
+simpleai==0.8.3
+six==1.16.0

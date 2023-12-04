@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# 2021 Modified by: Alejandro Cervantes
-# Remember installing pyplot and flask if you want to use WebViewer
-
 from __future__ import print_function
 
 import math
@@ -107,7 +104,7 @@ def searchInfo (problem,result,use_viewer):
     return res
 
 
-def resultado_experimento(problem,MAP,result,used_viewer):
+def calculate_result(problem,MAP,result,used_viewer):
     path = [x[1] for x in result.path()]
 
     for y in range(len(MAP)):
@@ -122,7 +119,7 @@ def resultado_experimento(problem,MAP,result,used_viewer):
                 print(MAP[y][x], end='')
         print()
 
-    info=searchInfo(problem,result,used_viewer)
+    info = searchInfo(problem,result,used_viewer)
     print(info)
 
 # def main():
@@ -153,7 +150,7 @@ def resultado_experimento(problem,MAP,result,used_viewer):
 
 def main():
     problem = GameWalkPuzzle(MAP, True)
-    used_viewer=ConsoleViewer() # Try also ConsoleViewer or WebViewer
+    used_viewer = ConsoleViewer() # Try also ConsoleViewer or WebViewer
     
     # Try breadth_first and depth_first too!
     result = breadth_first(problem, graph_search=True,viewer=used_viewer)
